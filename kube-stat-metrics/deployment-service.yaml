@@ -1,0 +1,89 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    k8s-app: kube-state-metrics
+  name: kube-state-metrics
+  namespace: kube-system
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: kube-state-metrics
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        k8s-app: kube-state-metrics
+        qcloud-redeploy-timestamp: "1563961744"
+    spec:
+      containers:
+      - image: ccr.ccs.tencentyun.com/dhub.wscn.com/kube-state-metrics:v1.5.0
+        imagePullPolicy: IfNotPresent
+        name: kube-state-metrics
+        ports:
+        - containerPort: 8080
+          name: http-metrics
+          protocol: TCP
+        - containerPort: 8081
+          name: telemetry
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+      - name: qcloudregistrykey
+      - name: tencenthubkey
+      restartPolicy: Always
+      securityContext: {}
+      serviceAccountName: kube-state-metrics
+      terminationGracePeriodSeconds: 30
+      volumes: null
+status: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+  creationTimestamp: null
+  labels:
+    k8s-app: kube-state-metrics
+  name: kube-state-metrics
+  namespace: kube-system
+spec:
+  ports:
+  - name: http-metrics
+    nodePort: 0
+    port: 8080
+    protocol: TCP
+    targetPort: http-metrics
+  - name: telemetry
+    nodePort: 0
+    port: 8081
+    protocol: TCP
+    targetPort: telemetry
+  selector:
+    k8s-app: kube-state-metrics
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

@@ -1,0 +1,96 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: prometheus
+  name: prometheus
+  namespace: metrics
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: prometheus
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        deployment.redeploy.count: "11"
+      creationTimestamp: null
+      labels:
+        app: prometheus
+    spec:
+      containers:
+      - args:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --storage.tsdb.path=/prometheus
+        - --storage.tsdb.retention.time=24h
+        - --web.enable-admin-api
+        - --web.enable-lifecycle
+        image: prom/prometheus:v2.11.1
+        imagePullPolicy: Always
+        name: prometheus
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "8"
+            memory: 16Gi
+          requests:
+            cpu: "4"
+            memory: 8Gi
+        terminationMessagePath: /dev/termination-log
+        volumeMounts:
+        - mountPath: /prometheus
+          name: data
+          subPath: prometheus
+        - mountPath: /etc/prometheus
+          name: config-volume
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext:
+        runAsUser: 0
+      serviceAccountName: prometheus
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - hostPath:
+          path: /opt
+        name: data
+      - configMap:
+          defaultMode: 420
+          name: prometheus-config
+        name: config-volume
+status: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    service.kubernetes.io/qcloud-loadbalancer-internal-subnetid: subnet-lsnpb7gb
+  creationTimestamp: null
+  labels:
+    app: prometheus
+  name: prometheus
+  namespace: metrics
+spec:
+  ports:
+  - name: web
+    nodePort: 30585
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: prometheus
+  sessionAffinity: None
+  type: LoadBalancer
+status:
+  loadBalancer: {}
