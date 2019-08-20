@@ -53,6 +53,8 @@ spec:
           subPath: prometheus
         - mountPath: /etc/prometheus
           name: config-volume
+        - name: rules-volume
+          mountPath: /etc/prometheus-rules
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       securityContext:
@@ -67,6 +69,9 @@ spec:
           defaultMode: 420
           name: prometheus-config
         name: config-volume
+      - name: rules-volume
+        configMap:
+          name: prometheus-rules
 status: {}
 
 ---
