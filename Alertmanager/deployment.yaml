@@ -1,0 +1,30 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: default
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      serviceAccountName: alertmanager
+      containers:
+      - name: alertmanager
+        image: prom/alertmanager:v0.18.0
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/alertmanager
+        - name: sys-time
+          mountPath: /etc/localtime
+        ports:
+        - containerPort: 9093
+      volumes:
+        - name: sys-time
+          hostPath:
+            path: /etc/localtime
+        - name: config-volume
+          configMap:
+            name: alertmanager-rules
