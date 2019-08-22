@@ -20,7 +20,7 @@ data:
         api_secret: 'z2x1-IDCSDJAxwkx32t2P_Ti-9UloQWtVDMX4jqaiy4'
     inhibit_rules:
     - source_match:
-      
+      namespace: "spider"
 kind: ConfigMap
 metadata:
   creationTimestamp: null
