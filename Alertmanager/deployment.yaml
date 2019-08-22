@@ -19,6 +19,8 @@ spec:
           mountPath: /etc/alertmanager
         - name: sys-time
           mountPath: /etc/localtime
+        - name: config-tmpl
+          mountPath: /etc/alerttemplate
         ports:
         - containerPort: 9093
       volumes:
@@ -28,3 +30,6 @@ spec:
         - name: config-volume
           configMap:
             name: alertmanager-rules
+        - name: config-tmpl
+          configMap:
+            name: alertmanager-tmpl
