@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: prometheus-server-rule-config
-  namespace: prometheus-server
+  name: prometheus-rules
+  namespace: default
 data:
-  rule.yml: |
+  rule.rules: |
     groups:
     - name: kubernetes
       rules:
@@ -14,69 +14,111 @@ data:
         labels:
           severity: error
           service: prometheus_bot
-          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.kubernetes_namespace }}"
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: Pod Down
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod }} pod status is Down."
           k8scluster: "{{ $labels.k8scluster}}"
-          namespace: "{{ $labels.kubernetes_namespace }}"
+          namespace: "{{ $labels.namespace }}" 
           pod: "{{ $labels.pod }}"
           container: "{{ $labels.container }}"
-      - alert: PodRestart
-        expr: changes(kube_pod_container_status_restarts_total{pod !~ "analyzer.*"}[10m]) > 0
-        for: 1m
+
+      - alert: PodPending
+        expr: kube_pod_status_phase{phase="Pending"} == 1
+        for: 5m
         labels:
           severity: error
           service: prometheus_bot
-          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.kubernetes_namespace }}"
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: Pod Restart
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod }} pod status is Pending 在5分钟内."
           k8scluster: "{{ $labels.k8scluster}}"
-          namespace: "{{ $labels.kubernetes_namespace }}"
+          namespace: "{{ $labels.namespace }}" 
           pod: "{{ $labels.pod }}"
           container: "{{ $labels.container }}"
+
+      - alert: PodRestart
+        expr: changes(kube_pod_container_status_restarts_total{pod !~ "analyzer.*"}[10m]) > 0
+        for: 3m
+        labels:
+          severity: warn
+          service: prometheus_bot
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
+        annotations:
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod }}  在一分钟内重启{{ $value }}%次."
+          k8scluster: "{{ $labels.k8scluster}}"
+          namespace: "{{ $labels.namespace }}"
+          pod: "{{ $labels.pod }}"
+          container: "{{ $labels.container }}"
+    
       - alert: NodeUnschedulable
         expr: kube_node_spec_unschedulable == 1
         for: 5m
         labels:
           severity: error
           service: prometheus_bot
-          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.kubernetes_namespace }}"
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: Node Unschedulable
-          k8scluster: "{{ $labels.k8scluster}}"
+          summary: "Node: {{ $labels.node }} Unschedulable 在五分钟内未恢复"
+          k8scluster: "{{ $labels.k8scluster}}" 
           node: "{{ $labels.node }}"
+    
       - alert: NodeStatusError
         expr: kube_node_status_condition{condition="Ready", status!="true"} == 1
         for: 5m
         labels:
           severity: error
           service: prometheus_bot
-          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.kubernetes_namespace }}"
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: Node Status Error
-          k8scluster: "{{ $labels.k8scluster}}"
+          summary: "Node: {{ $labels.node }} Status Error"
+          k8scluster: "{{ $labels.k8scluster}}" 
           node: "{{ $labels.node }}"
+    
       - alert: DaemonsetUnavailable
         expr: kube_daemonset_status_number_unavailable > 0
         for: 5m
         labels:
           severity: error
           service: prometheus_bot
-          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.kubernetes_namespace }}"
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: Daemonset Unavailable
-          k8scluster: "{{ $labels.k8scluster}}"
-          namespace: "{{ $labels.kubernetes_namespace }}"
+          summary: "Daemonset: {{ $labels.daemonset }} Status Unavailable"
+          k8scluster: "{{ $labels.k8scluster}}" 
+          namespace: "{{ $labels.namespace }}"  
           daemonset: "{{ $labels.daemonset }}"
+    
       - alert: JobFailed
         expr: kube_job_status_failed == 1
         for: 5m
         labels:
           severity: error
           service: prometheus_bot
-          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.kubernetes_namespace }}"
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: Job Failed
-          k8scluster: "{{ $labels.k8scluster}}"
-          namespace: "{{ $labels.kubernetes_namespace }}"
-          job: "{{ $labels.exported_job }}"
+          summary: "Job: {{ $labels.job_name}} Status Failed"
+          k8scluster: "{{ $labels.k8scluster}}" 
+          namespace: "{{ $labels.namespace }}" 
+
+      - alert: PodCPUUsage
+        expr: (sum(rate(container_cpu_usage_seconds_total{image!="",namespace != "kube-system"}[3m])) by (pod_name, namespace,k8scluster)) / (sum(container_spec_cpu_quota{image!="",namespace != "kube-system"}/100000) by (pod_name, namespace,k8scluster)) * 100 > 90
+        for: 3m
+        labels:
+          severity: warn
+          service: prometheus_bot
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
+        annotations:
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod_name }}  CPU使用率大于80%. (当前值:{{ $value }}%)"
+          k8scluster: "{{ $labels.k8scluster}}" 
+          namespace: "{{ $labels.namespace }}" 
+
+      - alert: PodMemUsage
+        expr: sum(container_memory_rss{image!="",namespace != "kube-system"}) by(pod_name, namespace,k8scluster) / sum(container_spec_memory_limit_bytes{image!="",namespace != "kube-system"}) by(pod_name, namespace,k8scluster) * 100 != +inf > 90
+        for: 3m
+        labels:
+          severity: warn
+          service: prometheus_bot
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
+        annotations:
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod_name }}  内存使用率大于80%. (当前值:{{ $value }}%)"
+          k8scluster: "{{ $labels.k8scluster}}" 
+          namespace: "{{ $labels.namespace }}" 
