@@ -44,7 +44,7 @@ data:
           service: prometheus_bot
           receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod }}  在一分钟内重启{{ $value }}%次."
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod }}  在一分钟内重启{{ $value }}次."
           k8scluster: "{{ $labels.k8scluster}}"
           namespace: "{{ $labels.namespace }}"
           pod: "{{ $labels.pod }}"
@@ -64,7 +64,7 @@ data:
     
       - alert: NodeStatusError
         expr: kube_node_status_condition{condition="Ready", status!="true"} == 1
-        for: 5m
+        for: 2m
         labels:
           severity: error
           service: prometheus_bot
@@ -107,7 +107,7 @@ data:
           service: prometheus_bot
           receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod_name }}  CPU使用率大于80%. (当前值:{{ $value }}%)"
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod_name }}  CPU使用率大于90%. (当前值:{{ $value }}%)"
           k8scluster: "{{ $labels.k8scluster}}" 
           namespace: "{{ $labels.namespace }}" 
 
@@ -119,6 +119,30 @@ data:
           service: prometheus_bot
           receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod_name }}  内存使用率大于80%. (当前值:{{ $value }}%)"
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod_name }}  内存使用率大于90%. (当前值:{{ $value }}%)"
           k8scluster: "{{ $labels.k8scluster}}" 
           namespace: "{{ $labels.namespace }}" 
+
+      - alert: PodTX
+        expr: sum (rate (container_network_transmit_bytes_total{image!="",namespace!="kube-system",pod_name!~"^node-exporter-.*"}[5m]) /1000) by (pod_name,namespace,k8scluster) > 20000
+        for: 3m
+        labels:
+          severity: warn
+          service: prometheus_bot
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
+        annotations:
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod_name }}  传输的流量超过20MB/s. (当前值:{{ $value }}%)"
+          k8scluster: "{{ $labels.k8scluster}}" 
+          namespace: "{{ $labels.namespace }}"
+
+      - alert: PodRX
+        expr: sum (rate (container_network_transmit_bytes_total{image!="",namespace!="kube-system",pod_name!~"^node-exporter-.*"}[5m]) /1000) by (pod_name,namespace,k8scluster) > 20000
+        for: 3m
+        labels:
+          severity: warn
+          service: prometheus_bot
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
+        annotations:
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod_name }}  接收到的流量超过20MB/s. (当前值:{{ $value }}%)"
+          k8scluster: "{{ $labels.k8scluster}}" 
+          namespace: "{{ $labels.namespace }}"
