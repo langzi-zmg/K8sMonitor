@@ -7,23 +7,20 @@ data:
       - '/etc/alerttemplate/*.tmpl'
     route:
       receiver: "sre"
-      group_by: ['alertname','node', 'container', 'exported_job', 'daemonset','namesapce']
+      group_by: ['alertname', 'k8scluster', 'node', 'container', 'exported_job', 'daemonset','namespace']
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 3h
       routes:
       - receiver: 'ivanka'
-        group_wait: 10s
         match:
-          namespace: 'ivanka'
+          namespace: ivanka
       - receiver: 'xuangubao'
-        group_wait: 30s
         match:
-          namespace: 'xuangubao'
+          namespace: xuangubao
       - receiver: 'frontend'
-        group_wait: 30s
         match:
-          namespace: 'default'
+          namespace: default
     receivers:
     - name: 'sre'
       wechat_configs:
