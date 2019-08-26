@@ -38,13 +38,13 @@ data:
 
       - alert: PodRestart
         expr: changes(kube_pod_container_status_restarts_total{pod !~ "analyzer.*"}[10m]) > 0
-        for: 3m
+        for: 10m
         labels:
           severity: warn
           service: prometheus_bot
           receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod }}  在一分钟内重启{{ $value }}次."
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod }}  在10分钟内重启{{ $value }}次."
           k8scluster: "{{ $labels.k8scluster}}"
           namespace: "{{ $labels.namespace }}"
           pod: "{{ $labels.pod }}"
@@ -70,7 +70,7 @@ data:
           service: prometheus_bot
           receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: "Node: {{ $labels.node }} Status Error"
+          summary: "Node: {{ $labels.node }} Status Error 在两分钟内未恢复"
           k8scluster: "{{ $labels.k8scluster}}" 
           node: "{{ $labels.node }}"
     
@@ -82,7 +82,7 @@ data:
           service: prometheus_bot
           receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: "Daemonset: {{ $labels.daemonset }} Status Unavailable"
+          summary: "Daemonset: {{ $labels.daemonset }} Status Unavailable 在五分钟内未恢复"
           k8scluster: "{{ $labels.k8scluster}}" 
           namespace: "{{ $labels.namespace }}"  
           daemonset: "{{ $labels.daemonset }}"
@@ -95,7 +95,7 @@ data:
           service: prometheus_bot
           receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
-          summary: "Job: {{ $labels.job_name}} Status Failed"
+          summary: "Job: {{ $labels.job_name}} Status Failed 在五分钟内未恢复"
           k8scluster: "{{ $labels.k8scluster}}" 
           namespace: "{{ $labels.namespace }}" 
 
