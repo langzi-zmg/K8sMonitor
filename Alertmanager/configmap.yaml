@@ -6,21 +6,50 @@ data:
     templates: 
       - '/etc/alerttemplate/*.tmpl'
     route:
-      receiver: "wechat"
-      group_by: ['alertname', 'k8scluster', 'node', 'container', 'exported_job', 'daemonset']
+      receiver: "sre"
+      group_by: ['alertname', 'k8scluster', 'node', 'container', 'exported_job', 'daemonset','namespace']
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 3h
+      routes:
+      - receiver: 'ivanka'
+        match:
+          namespace: ivanka
+      - receiver: 'xuangubao'
+        match:
+          namespace: xuangubao
+      - receiver: 'frontend'
+        match:
+          namespace: default
     receivers:
-    - name: 'wechat'
+    - name: 'sre'
       wechat_configs:
       - corp_id: 'ww63adb0909f572435'
         to_party: '1658018734'
         agent_id: '1000057'
         api_secret: 'z2x1-IDCSDJAxwkx32t2P_Ti-9UloQWtVDMX4jqaiy4'
-    inhibit_rules:
-    - source_match:
-      namespace: "spider"
+        send_resolved: true
+    - name: 'ivanka'
+      wechat_configs:
+      - corp_id: 'ww63adb0909f572435'
+        to_party: '1658018691'
+        agent_id: '1000057'
+        api_secret: 'z2x1-IDCSDJAxwkx32t2P_Ti-9UloQWtVDMX4jqaiy4'
+        send_resolved: true
+    - name: 'xuangubao'
+      wechat_configs:
+      - corp_id: 'ww63adb0909f572435'
+        to_party: '1658018697'
+        agent_id: '1000057'
+        api_secret: 'z2x1-IDCSDJAxwkx32t2P_Ti-9UloQWtVDMX4jqaiy4'
+        send_resolved: true
+    - name: 'frontend'
+      wechat_configs:
+      - corp_id: 'ww63adb0909f572435'
+        to_party: '1658018690'
+        agent_id: '1000057'
+        api_secret: 'z2x1-IDCSDJAxwkx32t2P_Ti-9UloQWtVDMX4jqaiy4'
+        send_resolved: true
 kind: ConfigMap
 metadata:
   creationTimestamp: null
