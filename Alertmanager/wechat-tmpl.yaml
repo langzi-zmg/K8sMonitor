@@ -1,57 +1,38 @@
 apiVersion: v1
 data:
-  alertmanager.yml: |
-    global:
-      wechat_api_url: "https://qyapi.weixin.qq.com/cgi-bin/"
-    templates: 
-      - '/etc/alerttemplate/*.tmpl'
-    route:
-      receiver: "sre"
-      group_by: ['alertname', 'k8scluster', 'node', 'container', 'exported_job', 'daemonset','namespace']
-      group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 3h
-      routes:
-      - receiver: 'ivanka'
-        match:
-          namespace: ivanka
-      - receiver: 'xuangubao'
-        match:
-          namespace: xuangubao
-      - receiver: 'frontend'
-        match:
-          namespace: default
-    receivers:
-    - name: 'sre'
-      wechat_configs:
-      - corp_id: 'ww63adb0909f572435'
-        to_party: '1658018734'
-        agent_id: '1000057'
-        api_secret: 'z2x1-IDCSDJAxwkx32t2P_Ti-9UloQWtVDMX4jqaiy4'
-        send_resolved: true
-    - name: 'ivanka'
-      wechat_configs:
-      - corp_id: 'ww63adb0909f572435'
-        to_party: '1658018691'
-        agent_id: '1000057'
-        api_secret: 'z2x1-IDCSDJAxwkx32t2P_Ti-9UloQWtVDMX4jqaiy4'
-        send_resolved: true
-    - name: 'xuangubao'
-      wechat_configs:
-      - corp_id: 'ww63adb0909f572435'
-        to_party: '1658018697'
-        agent_id: '1000057'
-        api_secret: 'z2x1-IDCSDJAxwkx32t2P_Ti-9UloQWtVDMX4jqaiy4'
-        send_resolved: true
-    - name: 'frontend'
-      wechat_configs:
-      - corp_id: 'ww63adb0909f572435'
-        to_party: '1658018690'
-        agent_id: '1000057'
-        api_secret: 'z2x1-IDCSDJAxwkx32t2P_Ti-9UloQWtVDMX4jqaiy4'
-        send_resolved: true
+  wechat.tmpl: |
+    {{- define "__text_alert_list" -}}
+    {{- range .Alerts.Firing -}}
+    Alerts Firing:
+    告警级别: {{ .Labels.severity }}
+    告警类型: {{ .Labels.alertname }}
+    故障时间: {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+    故障详情: {{ .Annotations.summary }}
+    ======参考信息======
+    cluster: {{ .Labels.k8scluster }}
+    namespace: {{ .Labels.namespace }}
+    pod: {{ or .Labels.pod  .Labels.pod_name }}
+    container: {{ .Annotations.container }}
+    {{ end }}
+    {{- range .Alerts.Resolved -}}
+    Alerts Resolved:
+    告警级别: {{ .Labels.severity }}
+    告警类型: {{ .Labels.alertname }}
+    故障详情: {{ .Annotations.summary }}
+    触发时间: {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+    恢复时间: {{ (.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+    {{ end }}
+    {{- end }}
+
+    {{- define "wechat.default.message" -}}
+    {{- if gt (len .Alerts.Firing) 0 -}}
+    {{ template "__text_alert_list" . }}
+    {{- end }}
+    {{- if gt (len .Alerts.Resolved) 0 -}}
+    {{ template "__text_alert_list" . }}
+    {{- end }}
+    {{- end }}
 kind: ConfigMap
 metadata:
-  creationTimestamp: null
-  name: alertmanager-rules
+  name: alertmanager-tmpl
   namespace: default
