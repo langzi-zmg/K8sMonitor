@@ -38,7 +38,7 @@ data:
 
       - alert: PodRestart
         expr: changes(kube_pod_container_status_restarts_total{pod !~ "analyzer.*"}[10m]) > 0
-        for: 10m
+        for: 3m
         labels:
           severity: warn
           service: prometheus_bot
@@ -144,5 +144,29 @@ data:
           receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
         annotations:
           summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod_name }}  接收到的流量超过20MB/s. (当前值:{{ $value }}%)"
+          k8scluster: "{{ $labels.k8scluster}}" 
+          namespace: "{{ $labels.namespace }}"
+
+      - record: PodCPUUsageTooLow
+        expr: (sum(rate(container_cpu_usage_seconds_total{image!="",namespace != "kube-system"}[30m])) by (pod_name, namespace,k8scluster)) / (sum(container_spec_cpu_quota{image!="",namespace != "kube-system"}/100000) by (pod_name, namespace,k8scluster)) * 100 
+        for: 3m
+        labels:
+          severity: warn
+          service: prometheus_bot
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
+        annotations:
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod_name }}  CPU使用率小于20%. (当前值:{{ $value }}%)"
+          k8scluster: "{{ $labels.k8scluster}}" 
+          namespace: "{{ $labels.namespace }}" 
+
+      - record: PodMemUsageTooLow
+        expr: sum(container_memory_rss{image!="",namespace != "kube-system"}) by(pod_name, namespace,k8scluster) / sum(container_spec_memory_limit_bytes{image!="",namespace != "kube-system"}) by(pod_name, namespace,k8scluster) * 100 != +inf
+        for: 3m
+        labels:
+          severity: warn
+          service: prometheus_bot
+          receiver_group: "{{ $labels.k8scluster}}_{{ $labels.namespace }}"
+        annotations:
+          summary: "Namespaces: {{ $labels.namespace }} | PodName: {{ $labels.pod_name }}  内存使用率小于20%. (当前值:{{ $value }}% )"
           k8scluster: "{{ $labels.k8scluster}}" 
           namespace: "{{ $labels.namespace }}"
