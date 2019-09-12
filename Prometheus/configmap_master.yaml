@@ -37,6 +37,9 @@ data:
         - targets: ['10.1.0.81:9090']
           labels: 
             k8scluster: spider
+        - targets: ['10.3.0.23:9090']
+          labels: 
+            k8scluster: shadow
     - job_name: 'kubernetes-nodes'
       tls_config:
         ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
